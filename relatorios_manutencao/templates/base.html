@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Relatórios de Manutenção{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="{{ url_for('index') }}">Relatórios de Manutenção</a>
+    <nav>
+      <a href="{{ url_for('dc96_form') }}">+ DC-96</a>
+      <a href="{{ url_for('fotografico') }}">+ Fotográfico</a>
+      <a href="{{ url_for('problemas') }}">+ Problemas</a>
+      {% if session.get('logado') %}<a href="{{ url_for('sair') }}" class="sair">Sair</a>{% endif %}
+    </nav>
+  </header>
+  <main>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<div class="aviso {{ cat }}">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  <footer class="rodape">Desenvolvido por Nex7 – Soluções Digitais</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

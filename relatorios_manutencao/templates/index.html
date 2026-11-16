@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="cabecalho-pagina">
+  <h1>Relatórios salvos</h1>
+  <div class="acoes">
+    <a class="btn primario" href="{{ url_for('dc96_form') }}">Nova DC-96</a>
+    <a class="btn secundario" href="{{ url_for('fotografico') }}">Novo relatório fotográfico</a>
+    <a class="btn secundario" href="{{ url_for('problemas') }}">Novo relatório de problemas</a>
+  </div>
+</div>
+
+<form class="filtros" method="get">
+  <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por BRA ou responsável">
+  <select name="tipo">
+    <option value="">Todos os tipos</option>
+    <option value="dc96" {% if tipo == 'dc96' %}selected{% endif %}>DC-96 – Condições da propriedade</option>
+    <option value="fotografico" {% if tipo == 'fotografico' %}selected{% endif %}>Fotográfico</option>
+    <option value="problemas" {% if tipo == 'problemas' %}selected{% endif %}>Problemas encontrados</option>
+  </select>
+  <button class="btn" type="submit">Filtrar</button>
+</form>
+
+{% if relatorios %}
+<div class="tabela-wrap">
+<table class="lista">
+  <thead><tr><th>Tipo</th><th>BRA</th><th>Data</th><th>Responsável</th><th>Atualizado</th><th></th></tr></thead>
+  <tbody>
+  {% for r in relatorios %}
+    {% set rota = {'fotografico': 'fotografico', 'problemas': 'problemas', 'dc96': 'dc96_form'}[r.tipo] %}
+    <tr>
+      <td><span class="tag {{ r.tipo }}">{{ tipos[r.tipo] }}</span></td>
+      <td><a href="{{ url_for(rota, rid=r.id) }}">{{ r.bra or '—' }}</a></td>
+      <td>{{ r.data_relatorio | data_br }}</td>
+      <td>{{ r.responsavel }}</td>
+      <td>{{ r.atualizado_em }}</td>
+      <td class="acoes-linha">
+        <a class="btn pequeno" href="{{ url_for(rota, rid=r.id) }}">Abrir</a>
+        <a class="btn pequeno" href="{{ url_for('baixar_word', rid=r.id) }}">Word</a>
+        {% if r.tipo == 'dc96' %}<a class="btn pequeno" href="{{ url_for('baixar_pdf_dc96', rid=r.id) }}">PDF</a>{% endif %}
+        <form method="post" action="{{ url_for('excluir', rid=r.id) }}" onsubmit="return confirm('Excluir este relatório?')">
+          <button class="btn pequeno perigo" type="submit">Excluir</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="vazio">Nenhum relatório encontrado.</p>
+{% endif %}
+{% endblock %}

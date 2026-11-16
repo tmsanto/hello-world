@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block titulo %}DC-96 – Avaliação das condições da propriedade{% endblock %}
+
+{% macro linha_pend(p) %}
+<tr>
+  <td class="num-pend"></td>
+  <td><textarea name="pend_problema" rows="2" placeholder="Problema">{{ p.problema }}</textarea></td>
+  <td><textarea name="pend_solucao" rows="2" placeholder="Solução recomendada">{{ p.solucao }}</textarea></td>
+  <td>
+    <select name="pend_responsavel" aria-label="Quem vai cuidar">
+      <option value="">—</option>
+      <option value="usuarios" {% if p.responsavel == 'usuarios' %}selected{% endif %}>Usuários</option>
+      <option value="ldc" {% if p.responsavel == 'ldc' %}selected{% endif %}>LDC</option>
+    </select>
+  </td>
+  <td><button type="button" class="btn pequeno perigo js-excluir" title="Excluir pendência">✕</button></td>
+</tr>
+{% endmacro %}
+
+{% block conteudo %}
+<form method="post" class="formulario" id="form-dc96">
+  <div class="cabecalho-pagina">
+    <div>
+      <h1>DC-96 – Avaliação das condições da propriedade</h1>
+      <p class="sub">{{ 'Editando avaliação salva' if rel else 'Nova avaliação' }} · DC-96-T 01/25</p>
+    </div>
+    {% if rel %}
+    <div class="acoes">
+      <a class="btn" href="{{ url_for('baixar_word', rid=rel.id) }}">Baixar Word</a>
+      {% if pdf_disponivel %}<a class="btn" href="{{ url_for('baixar_pdf_dc96', rid=rel.id) }}">Baixar PDF oficial</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <section class="cartao">
+    <h2>Descrição da propriedade</h2>
+    <label>Endereço
+      <input type="text" name="endereco" value="{{ d.endereco }}">
+    </label>
+    <div class="grade">
+      <label>Uso principal
+        <input type="text" name="uso_principal" value="{{ d.uso_principal }}" list="usos">
+        <datalist id="usos"><option value="Salão do Reino"><option value="Salão de Assembleias"><option value="Residência"></datalist>
+      </label>
+      <label>Nº BRA
+        <input type="text" name="bra" value="{{ rel.bra if rel else '' }}" required inputmode="numeric">
+      </label>
+      <label>Data
+        <input type="date" name="data_relatorio" value="{{ rel.data_relatorio if rel else hoje }}" required>
+      </label>
+    </div>
+    <label>Avaliado por
+      <input type="text" name="responsavel" value="{{ rel.responsavel if rel else '' }}" placeholder="Nome e contato de quem fez a avaliação">
+    </label>
+  </section>
+
+  {% set n = namespace(i=0) %}
+  {% for titulo, perguntas in campos.SECOES_PERGUNTAS %}
+  <section class="cartao">
+    <h2>{{ titulo | capitalize }}</h2>
+    {% for chave, texto in perguntas %}
+      {% set n.i = n.i + 1 %}
+      <label class="pergunta">
+        <span><b>{{ n.i }}.</b> {{ texto }}</span>
+        <textarea name="{{ chave }}" rows="2">{{ d.respostas.get(chave, '') }}</textarea>
+      </label>
+    {% endfor %}
+  </section>
+  {% endfor %}
+
+  <section class="cartao">
+    <h2>11. Problemas que prejudicam o ensino</h2>
+    <p class="sub">{{ campos.PERGUNTA_Q11 }}</p>
+    <div class="opcoes-q11">
+      {% for chave, texto, _, _ in campos.OPCOES_Q11 %}
+      {% set marcado = chave in d.q11 %}
+      <div class="opcao">
+        <label class="check"><input type="checkbox" name="q11_{{ chave }}" value="1" class="js-q11" {% if marcado %}checked{% endif %}> {{ texto }}</label>
+        <input type="text" name="q11_coment_{{ chave }}" value="{{ d.q11.get(chave, '') }}" placeholder="Explique" class="js-q11-coment" {% if not marcado %}hidden{% endif %}>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="cartao">
+    <div class="titulo-check">
+      <h2>Lista de verificação de segurança</h2>
+      <span class="contador" id="contador"></span>
+    </div>
+    <p class="sub">{{ campos.INSTRUCAO_CHECKLIST }}</p>
+    {% for grupo, itens in campos.CHECKLIST %}
+    <fieldset class="grupo-check">
+      <legend>{{ grupo }}</legend>
+      {% for chave, texto, _ in itens %}
+      <div class="item-check">
+        <label class="check"><input type="checkbox" name="chk_{{ chave }}" value="1" class="js-chk" {% if chave in d.checklist %}checked{% endif %}> <span>{{ texto }}</span></label>
+        <button type="button" class="btn pequeno js-virar-pendencia" data-texto="{{ texto }}" title="Criar pendência a partir deste item">+ Pendência</button>
+      </div>
+      {% endfor %}
+    </fieldset>
+    {% endfor %}
+  </section>
+
+  <section class="cartao">
+    <h2>Pendências <small>até {{ campos.MAX_PENDENCIAS }} itens</small></h2>
+    <p class="sub">Anote os problemas encontrados e as devidas soluções. Indique quem vai cuidar de cada pendência.</p>
+    <div class="tabela-wrap">
+      <table class="tabela-pendencias">
+        <thead><tr><th>Item</th><th>Problema</th><th>Solução recomendada</th><th>Quem cuida</th><th></th></tr></thead>
+        <tbody id="pendencias">
+          {% for p in d.pendencias %}{{ linha_pend(p) }}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="button" class="btn secundario" id="add-pendencia">+ Adicionar pendência</button>
+  </section>
+
+  <div class="barra-salvar">
+    <a class="btn" href="{{ url_for('index') }}">Voltar</a>
+    <button class="btn" type="submit" name="acao" value="salvar">Salvar</button>
+    <button class="btn" type="submit" name="acao" value="word">Salvar e gerar Word</button>
+    {% if pdf_disponivel %}<button class="btn primario" type="submit" name="acao" value="pdf">Salvar e gerar PDF oficial</button>{% endif %}
+  </div>
+</form>
+
+<template id="modelo-pendencia">{{ linha_pend({'problema': '', 'solucao': '', 'responsavel': ''}) }}</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var MAX = {{ campos.MAX_PENDENCIAS }};
+  var corpo = document.getElementById('pendencias');
+  var botaoAdd = document.getElementById('add-pendencia');
+
+  function renumerar() {
+    corpo.querySelectorAll('tr').forEach(function (tr, i) { tr.querySelector('.num-pend').textContent = (i + 1) + '.'; });
+    botaoAdd.disabled = corpo.children.length >= MAX;
+  }
+  function ligar(tr) {
+    tr.querySelector('.js-excluir').addEventListener('click', function () { tr.remove(); renumerar(); });
+  }
+  function adicionar(problema) {
+    if (corpo.children.length >= MAX) { alert('O formulário aceita no máximo ' + MAX + ' pendências.'); return null; }
+    var tmp = document.createElement('tbody');
+    tmp.innerHTML = document.getElementById('modelo-pendencia').innerHTML.trim();
+    var tr = tmp.firstElementChild;
+    if (problema) tr.querySelector('[name=pend_problema]').value = problema;
+    corpo.appendChild(tr);
+    ligar(tr);
+    renumerar();
+    return tr;
+  }
+  corpo.querySelectorAll('tr').forEach(ligar);
+  botaoAdd.addEventListener('click', function () { var tr = adicionar(); if (tr) tr.querySelector('textarea').focus(); });
+  if (!corpo.children.length) { for (var i = 0; i < 3; i++) adicionar(); }
+  renumerar();
+
+  // Item com irregularidade: desmarca e cria a pendência já com o assunto
+  document.querySelectorAll('.js-virar-pendencia').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var chk = b.parentNode.querySelector('.js-chk');
+      chk.checked = false; contar();
+      var vazia = Array.prototype.find.call(corpo.querySelectorAll('tr'), function (tr) {
+        return !tr.querySelector('[name=pend_problema]').value.trim() && !tr.querySelector('[name=pend_solucao]').value.trim();
+      });
+      var assunto = b.dataset.texto.split('?')[0] + '?';
+      var tr = vazia || adicionar();
+      if (!tr) return;
+      tr.querySelector('[name=pend_problema]').value = 'Irregularidade: ' + assunto + ' ';
+      tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var ta = tr.querySelector('[name=pend_problema]'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    });
+  });
+
+  // 11: mostra o campo de explicação só para os itens marcados
+  document.querySelectorAll('.js-q11').forEach(function (c) {
+    c.addEventListener('change', function () {
+      var coment = c.closest('.opcao').querySelector('.js-q11-coment');
+      coment.hidden = !c.checked; if (c.checked) coment.focus();
+    });
+  });
+
+  var chks = document.querySelectorAll('.js-chk'), contador = document.getElementById('contador');
+  function contar() {
+    var n = Array.prototype.filter.call(chks, function (c) { return c.checked; }).length;
+    contador.textContent = n + ' de ' + chks.length + ' verificados';
+  }
+  chks.forEach(function (c) { c.addEventListener('change', contar); });
+  contar();
+})();
+</script>
+{% endblock %}

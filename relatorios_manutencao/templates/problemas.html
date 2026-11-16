@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block titulo %}Problemas encontrados{% endblock %}
+
+{% macro linha(l) %}
+<tr>
+  <td><input type="text" name="quem" value="{{ l.quem }}" class="js-quem"></td>
+  <td><textarea name="problema" rows="2">{{ l.problema }}</textarea></td>
+  <td><input type="text" name="localizacao" value="{{ l.localizacao }}"></td>
+  <td><input type="date" name="data_conclusao" value="{{ l.data_conclusao }}"></td>
+  <td><button type="button" class="btn pequeno perigo js-excluir" title="Excluir linha">✕</button></td>
+</tr>
+{% endmacro %}
+
+{% block conteudo %}
+<form method="post" class="formulario">
+  <div class="cabecalho-pagina">
+    <h1>Problemas encontrados</h1>
+    {% if rel %}<a class="btn" href="{{ url_for('baixar_word', rid=rel.id) }}">Baixar Word</a>{% endif %}
+  </div>
+
+  <section class="cartao">
+    <div class="grade">
+      <label>BRA
+        <input type="text" name="bra" value="{{ rel.bra if rel else '' }}" required>
+      </label>
+      <label>Data
+        <input type="date" name="data_relatorio" value="{{ rel.data_relatorio if rel else hoje }}" required>
+      </label>
+      <label>Quem fez a verificação (padrão)
+        <input type="text" name="responsavel" id="responsavel" value="{{ rel.responsavel if rel else '' }}">
+        <small>Preenche automaticamente a coluna das novas linhas.</small>
+      </label>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <div class="tabela-wrap">
+      <table class="tabela-problemas">
+        <thead><tr>
+          <th>Quem fez a verificação</th><th>Problema encontrado</th><th>Localização</th><th>Data da conclusão</th><th></th>
+        </tr></thead>
+        <tbody id="linhas">
+          {% for l in linhas %}{{ linha(l) }}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="button" class="btn secundario" id="adicionar">+ Adicionar problema</button>
+  </section>
+
+  <div class="barra-salvar">
+    <a class="btn" href="{{ url_for('index') }}">Voltar</a>
+    <button class="btn" type="submit" name="acao" value="salvar">Salvar</button>
+    <button class="btn primario" type="submit" name="acao" value="word">Salvar e gerar Word</button>
+  </div>
+</form>
+
+<template id="modelo-linha">{{ linha({'quem': '', 'problema': '', 'localizacao': '', 'data_conclusao': ''}) }}</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var corpo = document.getElementById('linhas');
+  function ligar(tr) {
+    tr.querySelector('.js-excluir').addEventListener('click', function () { tr.remove(); });
+  }
+  function adicionar() {
+    var tmp = document.createElement('tbody');
+    tmp.innerHTML = document.getElementById('modelo-linha').innerHTML.trim();
+    var tr = tmp.firstElementChild;
+    tr.querySelector('.js-quem').value = document.getElementById('responsavel').value;
+    corpo.appendChild(tr);
+    ligar(tr);
+    return tr;
+  }
+  corpo.querySelectorAll('tr').forEach(ligar);
+  document.getElementById('adicionar').addEventListener('click', function () {
+    adicionar().querySelector('textarea').focus();
+  });
+  document.getElementById('responsavel').addEventListener('change', function (e) {
+    corpo.querySelectorAll('.js-quem').forEach(function (inp) { if (!inp.value) inp.value = e.target.value; });
+  });
+  if (!corpo.children.length) { for (var i = 0; i < 5; i++) adicionar(); }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block titulo %}Relatório fotográfico{% endblock %}
+
+{% macro item_foto(secao, item, chave) %}
+<div class="item-foto" data-secao="{{ secao }}">
+  <input type="hidden" name="item_chave" value="{{ chave }}">
+  <input type="hidden" name="item_secao" value="{{ secao }}">
+  <input type="hidden" name="item_id" value="{{ item.id }}">
+  <input type="hidden" name="item_remover_foto" value="0" class="js-remover-flag">
+  <div class="numero"></div>
+  <label class="area-foto">
+    {% if item.arquivo %}
+      <img src="{{ url_for('foto', nome=item.arquivo) }}" alt="" class="js-preview">
+    {% else %}
+      <img alt="" class="js-preview" hidden>
+    {% endif %}
+    <span class="placeholder" {% if item.arquivo %}hidden{% endif %}>Toque para adicionar foto</span>
+    <input type="file" name="item_foto_{{ chave }}" accept="image/*" class="js-arquivo">
+  </label>
+  <input type="text" name="item_legenda" value="{{ item.legenda }}" placeholder="{{ 'Cômodo' if secao == 'comodo' else 'Descrição da foto' }}">
+  <div class="controles">
+    <button type="button" class="btn pequeno js-subir" title="Mover para cima">↑</button>
+    <button type="button" class="btn pequeno js-descer" title="Mover para baixo">↓</button>
+    <button type="button" class="btn pequeno js-tirar-foto">Remover foto</button>
+    <button type="button" class="btn pequeno perigo js-excluir">Excluir</button>
+  </div>
+</div>
+{% endmacro %}
+
+{% block conteudo %}
+<form method="post" enctype="multipart/form-data" class="formulario">
+  <div class="cabecalho-pagina">
+    <h1>Relatório fotográfico – Residência</h1>
+    {% if rel %}<a class="btn" href="{{ url_for('baixar_word', rid=rel.id) }}">Baixar Word</a>{% endif %}
+  </div>
+
+  <section class="cartao">
+    <div class="grade">
+      <label>BRA
+        <input type="text" name="bra" value="{{ rel.bra if rel else '' }}" required>
+      </label>
+      <label>Data do relatório
+        <input type="date" name="data_relatorio" value="{{ rel.data_relatorio if rel else hoje }}" required>
+      </label>
+      <label>Responsável pela vistoria
+        <input type="text" name="responsavel" value="{{ rel.responsavel if rel else '' }}">
+      </label>
+    </div>
+    <label>Condição geral da residência
+      <small>A residência apresenta alguma condição que possa comprometer a saúde dos ocupantes, como presença de mofo, umidade excessiva, ventilação insuficiente ou temperatura inadequada?</small>
+      <textarea name="condicao_geral" rows="3">{{ rel.condicao_geral if rel else '' }}</textarea>
+    </label>
+  </section>
+
+  <section class="cartao">
+    <h2>Cômodos</h2>
+    <div class="grade-fotos" id="lista-comodo">
+      {% for c in comodos %}{{ item_foto('comodo', c, 'c' ~ loop.index) }}{% endfor %}
+    </div>
+    <button type="button" class="btn secundario js-adicionar" data-secao="comodo" data-legenda="Cômodo adicional">+ Adicionar cômodo</button>
+  </section>
+
+  <section class="cartao">
+    <h2>Pendências <small>(Notas 3 e 4)</small></h2>
+    <div class="grade-fotos" id="lista-pendencia">
+      {% for p in pendencias %}{{ item_foto('pendencia', p, 'p' ~ loop.index) }}{% endfor %}
+    </div>
+    <button type="button" class="btn secundario js-adicionar" data-secao="pendencia" data-legenda="">+ Adicionar pendência</button>
+  </section>
+
+  <div class="barra-salvar">
+    <a class="btn" href="{{ url_for('index') }}">Voltar</a>
+    <button class="btn" type="submit" name="acao" value="salvar">Salvar</button>
+    <button class="btn primario" type="submit" name="acao" value="word">Salvar e gerar Word</button>
+  </div>
+</form>
+
+<template id="modelo-comodo">{{ item_foto('comodo', {'id': '', 'legenda': '', 'arquivo': None}, '__CHAVE__') }}</template>
+<template id="modelo-pendencia">{{ item_foto('pendencia', {'id': '', 'legenda': '', 'arquivo': None}, '__CHAVE__') }}</template>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='fotografico.js') }}"></script>{% endblock %}
